@@ -1,0 +1,52 @@
+/* frontend/style.css */
+
+/* Define a subtle fade-in animation */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Base styling for alerts to apply animation */
+.stAlert {
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+/* Naruto Color Scheme for Alerts */
+
+/* Info/Sending - Naruto Orange */
+div[data-testid="stAlert"] [data-testid="stInfo"] {
+    background-color: #FFF3E0; /* Lighter orange background */
+    border-left: 5px solid #FF9800; /* Orange accent border */
+    color: #E65100; /* Darker orange text */
+}
+
+/* Success - Leaf Village Green */
+div[data-testid="stAlert"] [data-testid="stSuccess"] {
+    background-color: #E8F5E9; /* Lighter green background */
+    border-left: 5px solid #4CAF50; /* Green accent border */
+    color: #1B5E20; /* Darker green text */
+}
+
+/* Warning - Keep similar to default, maybe slightly adjusted */
+div[data-testid="stAlert"] [data-testid="stWarning"] {
+    background-color: #FFF8E1; /* Light yellow */
+    border-left: 5px solid #FFC107; /* Amber */
+    color: #E65100; /* Dark Orange/Brown text */
+}
+
+/* Error - Keep similar to default red */
+div[data-testid="stAlert"] [data-testid="stError"] {
+    background-color: #FFEBEE; /* Light red */
+    border-left: 5px solid #F44336; /* Red accent */
+    color: #B71C1C; /* Dark red text */
+}
+
+/* Gallery Placeholder Styling - REMOVED */
+/* 
+.gallery-placeholder {
+    border: 2px dashed #FF9800; 
+    border-radius: 5px; 
+    padding: 15px; 
+    margin-top: 10px; 
+}
+*/ 
