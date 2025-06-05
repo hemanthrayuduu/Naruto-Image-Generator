@@ -1,8 +1,6 @@
-torch
-diffusers
-transformers
-peft
-fastapi
-uvicorn
-accelerate
-safetensors
+torch==2.0.1+cpu --index-url https://download.pytorch.org/whl/cpu
+diffusers==0.21.4
+fastapi==0.104.1
+uvicorn==0.24.0
+pillow==10.0.1
+pydantic==2.5.0
