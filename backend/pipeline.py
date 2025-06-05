@@ -1,9 +1,17 @@
 import os
 import torch
 from typing import Optional
-from diffusers import DiffusionPipeline
 import warnings
 warnings.filterwarnings("ignore")
+
+# Try to import diffusers with fallback handling
+try:
+    from diffusers import DiffusionPipeline
+    DIFFUSERS_AVAILABLE = True
+    print("Diffusers imported successfully")
+except ImportError as e:
+    print(f"Warning: Could not import diffusers: {e}")
+    DIFFUSERS_AVAILABLE = False
 
 # Environment variables with defaults
 DEVICE = os.environ.get("DEVICE", "cpu")
@@ -15,9 +23,46 @@ SMALL_MODEL = "runwayml/stable-diffusion-v1-5"
 ENABLE_MEMORY_EFFICIENT_ATTENTION = True
 
 print(f"Using device: {DEVICE}, dtype: {TORCH_DTYPE}")
+print(f"Diffusers available: {DIFFUSERS_AVAILABLE}")
 
 # Initialize pipeline as None
 pipe = None
+
+def create_dummy_pipeline():
+    """Create a dummy pipeline that generates simple colored images"""
+    from PIL import Image, ImageDraw
+    import random
+    
+    class DummyPipeline:
+        def __call__(self, prompt, **kwargs):
+            # Create a simple colored image with text
+            width = kwargs.get('width', 256)
+            height = kwargs.get('height', 256)
+            
+            # Generate random color based on prompt hash
+            color_hash = hash(prompt) % 16777215
+            color = f"#{color_hash:06x}"
+            
+            img = Image.new('RGB', (width, height), color)
+            draw = ImageDraw.Draw(img)
+            
+            # Add prompt text (simplified)
+            try:
+                # Use default font
+                draw.text((10, 10), f"Generated: {prompt[:30]}...", fill="white")
+                draw.text((10, height-30), "Demo Mode (Diffusers not available)", fill="white")
+            except:
+                pass
+            
+            # Mock return format
+            class MockResult:
+                def __init__(self, img):
+                    self.images = [img]
+            
+            return MockResult(img)
+    
+    print("Using dummy pipeline (fallback mode)")
+    return DummyPipeline()
 
 def initialize_pipeline():
     """Initialize the pipeline with memory optimizations"""
@@ -25,6 +70,10 @@ def initialize_pipeline():
     
     if pipe is not None:
         return pipe
+    
+    if not DIFFUSERS_AVAILABLE:
+        print("Diffusers not available, using dummy pipeline")
+        return create_dummy_pipeline()
     
     print("Loading optimized Stable Diffusion model...")
     
@@ -63,42 +112,6 @@ def initialize_pipeline():
         print(f"Error loading tiny model: {e}")
         # Ultimate fallback - create a dummy pipeline that returns a simple image
         return create_dummy_pipeline()
-
-def create_dummy_pipeline():
-    """Create a dummy pipeline that generates simple colored images"""
-    from PIL import Image, ImageDraw, ImageFont
-    import random
-    
-    class DummyPipeline:
-        def __call__(self, prompt, **kwargs):
-            # Create a simple colored image with text
-            width = kwargs.get('width', 512)
-            height = kwargs.get('height', 512)
-            
-            # Generate random color based on prompt hash
-            color_hash = hash(prompt) % 16777215
-            color = f"#{color_hash:06x}"
-            
-            img = Image.new('RGB', (width, height), color)
-            draw = ImageDraw.Draw(img)
-            
-            # Add prompt text (simplified)
-            try:
-                font_size = min(width, height) // 20
-                # Use default font
-                draw.text((10, 10), f"Generated: {prompt[:30]}...", fill="white")
-            except:
-                pass
-            
-            # Mock return format
-            class MockResult:
-                def __init__(self, img):
-                    self.images = [img]
-            
-            return MockResult(img)
-    
-    print("Using dummy pipeline (extremely memory efficient)")
-    return DummyPipeline()
 
 # 3. Inference function
 def generate_image(
@@ -150,5 +163,6 @@ def generate_image(
         from PIL import Image, ImageDraw
         img = Image.new('RGB', (width, height), 'red')
         draw = ImageDraw.Draw(img)
-        draw.text((10, 10), "Error: Memory limit", fill="white")
+        draw.text((10, 10), "Error: Generation failed", fill="white")
+        draw.text((10, 30), str(e)[:40], fill="white")
         return img 
