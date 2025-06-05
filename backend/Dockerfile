@@ -33,10 +33,10 @@ COPY --chown=app:app . .
 ENV DEVICE=cpu \
     TORCH_DTYPE=float32 \
     MODEL_DIR=/app/model \
-    DEFAULT_STEPS=20 \
+    DEFAULT_STEPS=10 \
     DEFAULT_GUIDANCE_SCALE=7.5 \
-    DEFAULT_WIDTH=512 \
-    DEFAULT_HEIGHT=512 \
+    DEFAULT_WIDTH=256 \
+    DEFAULT_HEIGHT=256 \
     ALLOWED_ORIGINS=*
 
 # Create model directory if it doesn't exist
