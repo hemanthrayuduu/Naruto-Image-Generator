@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🍥 Naruto Image Generator</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>🍥 Naruto Image Generator</h1>
+            <p>Transform your ideas into stunning Naruto-style artwork using AI!</p>
+        </header>
+
+        <main class="main">
+            <div class="form-container">
+                <form id="generateForm" class="generate-form">
+                    <div class="form-group">
+                        <label for="prompt">Enter your prompt:</label>
+                        <textarea 
+                            id="prompt" 
+                            name="prompt" 
+                            placeholder="Example: A ninja in Naruto style with blue eyes and blonde hair"
+                            required
+                        ></textarea>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="steps">Inference Steps:</label>
+                            <input type="range" id="steps" name="steps" min="1" max="50" value="10">
+                            <span id="stepsValue">10</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="guidance">Guidance Scale:</label>
+                            <input type="range" id="guidance" name="guidance" min="1" max="20" step="0.5" value="7.5">
+                            <span id="guidanceValue">7.5</span>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="dimensions">Image Size:</label>
+                            <select id="dimensions" name="dimensions">
+                                <option value="256x256">256x256</option>
+                                <option value="512x512" selected>512x512</option>
+                                <option value="768x768">768x768</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="seed">Seed (optional):</label>
+                            <input type="number" id="seed" name="seed" placeholder="Random">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="generate-btn" id="generateBtn">
+                        <span id="btnText">🎨 Generate Image</span>
+                        <div id="spinner" class="spinner" style="display: none;"></div>
+                    </button>
+                </form>
+            </div>
+
+            <div class="result-container" id="resultContainer" style="display: none;">
+                <h2>Generated Image</h2>
+                <div class="image-result">
+                    <img id="generatedImage" alt="Generated Naruto Image">
+                    <div class="image-actions">
+                        <button id="downloadBtn" class="download-btn">⬇️ Download Image</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="error-container" id="errorContainer" style="display: none;">
+                <div class="error-message">
+                    <span id="errorText"></span>
+                </div>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <p>💡 Pro Tips: Be specific in your prompts for better results. Experiment with different settings!</p>
+        </footer>
+    </div>
+
+    <script>
+        const API_URL = 'https://naruto-image-generator.onrender.com';
+        
+        // Update slider values
+        document.getElementById('steps').addEventListener('input', (e) => {
+            document.getElementById('stepsValue').textContent = e.target.value;
+        });
+        
+        document.getElementById('guidance').addEventListener('input', (e) => {
+            document.getElementById('guidanceValue').textContent = e.target.value;
+        });
+
+        // Form submission
+        document.getElementById('generateForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const prompt = formData.get('prompt');
+            const steps = parseInt(formData.get('steps'));
+            const guidance_scale = parseFloat(formData.get('guidance'));
+            const dimensions = formData.get('dimensions');
+            const seed = formData.get('seed') ? parseInt(formData.get('seed')) : null;
+            
+            const [width, height] = dimensions.split('x').map(Number);
+            
+            // Show loading state
+            setLoadingState(true);
+            hideError();
+            hideResult();
+            
+            try {
+                const response = await fetch(`${API_URL}/generate`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        prompt,
+                        num_inference_steps: steps,
+                        guidance_scale,
+                        width,
+                        height,
+                        seed
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`API Error: ${response.status} - ${response.statusText}`);
+                }
+                
+                const blob = await response.blob();
+                const imageUrl = URL.createObjectURL(blob);
+                
+                // Show result
+                showResult(imageUrl, prompt);
+                
+            } catch (error) {
+                console.error('Error generating image:', error);
+                showError(error.message);
+            } finally {
+                setLoadingState(false);
+            }
+        });
+
+        function setLoadingState(loading) {
+            const btn = document.getElementById('generateBtn');
+            const btnText = document.getElementById('btnText');
+            const spinner = document.getElementById('spinner');
+            
+            btn.disabled = loading;
+            btnText.style.display = loading ? 'none' : 'inline';
+            spinner.style.display = loading ? 'inline-block' : 'none';
+        }
+
+        function showResult(imageUrl, prompt) {
+            const container = document.getElementById('resultContainer');
+            const img = document.getElementById('generatedImage');
+            const downloadBtn = document.getElementById('downloadBtn');
+            
+            img.src = imageUrl;
+            img.alt = `Generated image for: ${prompt}`;
+            
+            downloadBtn.onclick = () => {
+                const a = document.createElement('a');
+                a.href = imageUrl;
+                a.download = `naruto-generated-${Date.now()}.png`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            };
+            
+            container.style.display = 'block';
+            container.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function showError(message) {
+            const container = document.getElementById('errorContainer');
+            const errorText = document.getElementById('errorText');
+            
+            errorText.textContent = message;
+            container.style.display = 'block';
+            container.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function hideError() {
+            document.getElementById('errorContainer').style.display = 'none';
+        }
+
+        function hideResult() {
+            document.getElementById('resultContainer').style.display = 'none';
+        }
+    </script>
+</body>
+</html> 

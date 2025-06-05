@@ -1,1 +1,37 @@
- 
+# Netlify configuration for Naruto Image Generator HTML Frontend
+[build]
+  base = "frontend/"
+  publish = "."
+  command = "echo 'Static HTML deployment - no build needed'"
+
+[build.environment]
+  BACKEND_API_URL = "https://naruto-image-generator.onrender.com"
+
+# Static file serving
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+# CORS headers for API calls
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "public, max-age=3600"
+
+# Enable CORS for API calls (if needed)
+[[redirects]]
+  from = "/api/*"
+  to = "https://naruto-image-generator.onrender.com/:splat"
+  status = 200
+  force = true
+  headers = {X-From = "Netlify"}
+
+# SPA fallback (optional, for client-side routing)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200 
