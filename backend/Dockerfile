@@ -37,7 +37,8 @@ ENV DEVICE=cpu \
     DEFAULT_GUIDANCE_SCALE=7.5 \
     DEFAULT_WIDTH=256 \
     DEFAULT_HEIGHT=256 \
-    ALLOWED_ORIGINS=*
+    ALLOWED_ORIGINS=* \
+    PORT=8000
 
 # Create model directory if it doesn't exist
 RUN mkdir -p /app/model && chown -R app:app /app
@@ -45,12 +46,11 @@ RUN mkdir -p /app/model && chown -R app:app /app
 # Switch to non-root user
 USER app
 
-# Expose FastAPI port
+# Expose the default port (Render will override this)
 EXPOSE 8000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
+# Health check (Render will handle this via healthCheckPath)
+# HEALTHCHECK disabled for Render compatibility
 
-# Start FastAPI app with Uvicorn
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"] 
+# Start FastAPI app with Uvicorn using dynamic port
+CMD uvicorn app:app --host 0.0.0.0 --port $PORT --workers 1 

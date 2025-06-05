@@ -1,1 +1,27 @@
- 
+services:
+  - type: web
+    name: naruto-image-generator-backend
+    env: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    region: oregon
+    branch: main
+    healthCheckPath: /health
+    envVars:
+      - key: DEVICE
+        value: cpu
+      - key: TORCH_DTYPE
+        value: float32
+      - key: DEFAULT_STEPS
+        value: 10
+      - key: DEFAULT_GUIDANCE_SCALE
+        value: 7.5
+      - key: DEFAULT_WIDTH
+        value: 256
+      - key: DEFAULT_HEIGHT
+        value: 256
+      - key: ALLOWED_ORIGINS
+        value: "*"
+      - key: MODEL_DIR
+        value: /app/model 
