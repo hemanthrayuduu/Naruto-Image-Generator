@@ -2,6 +2,7 @@ import os
 import torch
 from typing import Optional
 import warnings
+import huggingface_hub
 warnings.filterwarnings("ignore")
 
 # Try to import diffusers with fallback handling
@@ -24,6 +25,7 @@ ENABLE_MEMORY_EFFICIENT_ATTENTION = True
 
 print(f"Using device: {DEVICE}, dtype: {TORCH_DTYPE}")
 print(f"Diffusers available: {DIFFUSERS_AVAILABLE}")
+print("huggingface_hub version:", huggingface_hub.__version__)
 
 # Initialize pipeline as None
 pipe = None
