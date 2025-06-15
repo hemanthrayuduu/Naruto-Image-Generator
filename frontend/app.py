@@ -6,10 +6,11 @@ import io
 import base64
 import time # Keep for download filename, maybe remove later if not needed
 from pathlib import Path # Import Path
+from config import BACKEND_API_URL
 
 # --- Configuration ---
 # TODO: Replace with actual backend URL from Ram or load from secrets/env var
-BACKEND_URL = "http://localhost:8000/generate" 
+# BACKEND_URL = "http://localhost:8000/generate" 
 
 # --- Helper Functions ---
 
@@ -70,10 +71,14 @@ def generate_image_from_backend(
     try:
         # Use st.secrets or environment variables for the URL in production/deployment
         # backend_url = st.secrets.get("BACKEND_URL", BACKEND_URL) 
-        backend_url = BACKEND_URL # Using hardcoded for now, as per initial setup
+        backend_url = BACKEND_API_URL # Using hardcoded for now, as per initial setup
 
         # Send POST request, expect raw bytes in response
-        response = requests.post(backend_url, json=payload, timeout=180, stream=True) # Increased timeout, stream=True for raw response
+        response = requests.post(
+            f"{backend_url}/generate",
+            json=payload,
+            timeout=180,
+        )
         response.raise_for_status() # Raise HTTPError for bad responses (4xx or 5xx)
 
         # Check content type to ensure it's an image
@@ -93,7 +98,7 @@ def generate_image_from_backend(
              return None
 
     except requests.exceptions.Timeout:
-        st.error(f"Connection to backend timed out ({BACKEND_URL}). The image generation might be taking too long or the backend might be down.")
+        st.error(f"Connection to backend timed out ({BACKEND_API_URL}). The image generation might be taking too long or the backend might be down.")
         return None
     except requests.exceptions.ConnectionError:
         st.error(f"Could not connect to the backend at {backend_url}. Is it running? Please ensure the backend service is started.")
