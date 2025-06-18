@@ -26,6 +26,7 @@ ENABLE_MEMORY_EFFICIENT_ATTENTION = True
 print(f"Using device: {DEVICE}, dtype: {TORCH_DTYPE}")
 print(f"Diffusers available: {DIFFUSERS_AVAILABLE}")
 print("huggingface_hub version:", huggingface_hub.__version__)
+print("split_torch_state_dict_into_shards in huggingface_hub:", hasattr(huggingface_hub, "split_torch_state_dict_into_shards"))
 
 # Initialize pipeline as None
 pipe = None
