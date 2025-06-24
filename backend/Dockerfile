@@ -1,56 +1,20 @@
-# Use Python 3.10 slim as base image
+# Use the official Python image as a parent image
 FROM python:3.10-slim
 
-# Set environment variables
-ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1 \
-    PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1
-
-# Create non-root user for security
-RUN useradd --create-home --shell /bin/bash app
-
-# Set working directory
+# Set the working directory in the container
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    curl \
-    && rm -rf /var/lib/apt/lists/* \
-    && apt-get clean
+# Copy the current directory contents into the container at /app
+COPY . /app
 
-# Copy requirements first to leverage Docker cache
-COPY requirements.txt .
-
-# Install Python dependencies
+# Install any needed packages specified in requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application code and model files
-COPY --chown=app:app . .
+# Make port 80 available to the world outside this container
+EXPOSE 80
 
-# Set default environment variables for production
-ENV DEVICE=cpu \
-    TORCH_DTYPE=float32 \
-    MODEL_DIR=/app/model \
-    DEFAULT_STEPS=10 \
-    DEFAULT_GUIDANCE_SCALE=7.5 \
-    DEFAULT_WIDTH=256 \
-    DEFAULT_HEIGHT=256 \
-    ALLOWED_ORIGINS=* \
-    PORT=8000
+# Define environment variable
+ENV NAME World
 
-# Create model directory if it doesn't exist
-RUN mkdir -p /app/model && chown -R app:app /app
-
-# Switch to non-root user
-USER app
-
-# Expose the default port (Render will override this)
-EXPOSE 8000
-
-# Health check (Render will handle this via healthCheckPath)
-# HEALTHCHECK disabled for Render compatibility
-
-# Start FastAPI app with Uvicorn using dynamic port
-CMD uvicorn app:app --host 0.0.0.0 --port $PORT --workers 1 
+# Run app.py when the container launches
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "80"] 
