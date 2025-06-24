@@ -7,7 +7,8 @@ warnings.filterwarnings("ignore")
 
 # Try to import diffusers with fallback handling
 try:
-    from diffusers import DiffusionPipeline
+    from diffusers import StableDiffusionPipeline
+    from peft import PeftModel
     DIFFUSERS_AVAILABLE = True
     print("Diffusers imported successfully")
 except ImportError as e:
@@ -19,9 +20,9 @@ DEVICE = os.environ.get("DEVICE", "cpu")
 TORCH_DTYPE = getattr(torch, os.environ.get("TORCH_DTYPE", "float32"))
 MODEL_DIR = os.environ.get("MODEL_DIR", "./model")
 
-# Use a much smaller model for memory-constrained environments
-SMALL_MODEL = "runwayml/stable-diffusion-v1-5"
-ENABLE_MEMORY_EFFICIENT_ATTENTION = True
+# Use your fine-tuned LoRA model
+BASE_MODEL = "CompVis/stable-diffusion-v1-4"
+LORA_MODEL_PATH = MODEL_DIR
 
 print(f"Using device: {DEVICE}, dtype: {TORCH_DTYPE}")
 print(f"Diffusers available: {DIFFUSERS_AVAILABLE}")
@@ -68,7 +69,7 @@ def create_dummy_pipeline():
     return DummyPipeline()
 
 def initialize_pipeline():
-    """Initialize the pipeline with memory optimizations"""
+    """Initialize the pipeline with your fine-tuned LoRA model"""
     global pipe
     
     if pipe is not None:
@@ -78,18 +79,45 @@ def initialize_pipeline():
         print("Diffusers not available, using dummy pipeline")
         return create_dummy_pipeline()
     
-    print("Loading optimized Stable Diffusion model...")
+    print("Loading your fine-tuned Naruto LoRA model...")
     
     try:
-        # Try to load with maximum memory efficiency
-        pipe = DiffusionPipeline.from_pretrained(
-            "hf-internal-testing/tiny-stable-diffusion-torch",  # Tiny model for testing
-            torch_dtype=TORCH_DTYPE,
-            safety_checker=None,
-            requires_safety_checker=False,
-            low_cpu_mem_usage=True,
-            use_safetensors=True
-        )
+        # First, try to load your LoRA model
+        if os.path.exists(LORA_MODEL_PATH) and any(f.endswith('.safetensors') or f.endswith('.bin') for f in os.listdir(LORA_MODEL_PATH)):
+            print(f"Found LoRA model at: {LORA_MODEL_PATH}")
+            
+            # Load base Stable Diffusion model
+            pipe = StableDiffusionPipeline.from_pretrained(
+                BASE_MODEL,
+                torch_dtype=TORCH_DTYPE,
+                safety_checker=None,
+                requires_safety_checker=False,
+                low_cpu_mem_usage=True,
+                use_safetensors=True
+            )
+            
+            # Load LoRA weights
+            try:
+                pipe.load_lora_weights(LORA_MODEL_PATH)
+                print("LoRA weights loaded successfully")
+            except Exception as lora_error:
+                print(f"Could not load LoRA weights: {lora_error}")
+                print("Continuing with base model...")
+            
+        else:
+            print(f"No LoRA model found at {LORA_MODEL_PATH}, loading base model...")
+            # Fallback to base model
+            pipe = StableDiffusionPipeline.from_pretrained(
+                BASE_MODEL,
+                torch_dtype=TORCH_DTYPE,
+                safety_checker=None,
+                requires_safety_checker=False,
+                low_cpu_mem_usage=True,
+                use_safetensors=True
+            )
+        
+        # Move to device
+        pipe = pipe.to(DEVICE)
         
         # Enable memory efficient attention if available
         if hasattr(pipe.unet, 'set_use_memory_efficient_attention_xformers'):
@@ -98,34 +126,30 @@ def initialize_pipeline():
             except:
                 pass
         
-        # Move to device
-        pipe = pipe.to(DEVICE)
-        
-        # Enable CPU offload for even more memory efficiency
+        # Enable CPU offload for memory efficiency
         if DEVICE == "cpu":
             try:
                 pipe.enable_sequential_cpu_offload()
             except:
                 pass
         
-        print("Tiny Stable Diffusion model loaded successfully (memory optimized)")
+        print("Naruto LoRA model loaded successfully")
         return pipe
         
     except Exception as e:
-        print(f"Error loading tiny model: {e}")
-        # Ultimate fallback - create a dummy pipeline that returns a simple image
+        print(f"Error loading model: {e}")
+        print("Falling back to dummy pipeline...")
         return create_dummy_pipeline()
 
-# 3. Inference function
 def generate_image(
     prompt: str, 
-    num_inference_steps: int = 10,  # Reduced for memory efficiency
+    num_inference_steps: int = 25,
     guidance_scale: float = 7.5, 
-    width: int = 256,  # Reduced size for memory efficiency
-    height: int = 256, # Reduced size for memory efficiency
+    width: int = 512,
+    height: int = 512,
     seed: Optional[int] = None
 ):
-    """Generates an image using the memory-optimized pipeline"""
+    """Generates a Naruto-style image using the fine-tuned LoRA model"""
     global pipe
     
     # Initialize pipeline if not already done
@@ -135,10 +159,11 @@ def generate_image(
     print(f"Generating image for prompt: '{prompt[:50]}...'")
     print(f"Settings: Steps={num_inference_steps}, Scale={guidance_scale}, Size={width}x{height}")
     
-    # Limit parameters for memory efficiency
-    num_inference_steps = min(num_inference_steps, 20)  # Cap at 20 steps
-    width = min(width, 512)   # Cap at 512px
-    height = min(height, 512) # Cap at 512px
+    # Limit parameters for memory efficiency on CPU
+    if DEVICE == "cpu":
+        num_inference_steps = min(num_inference_steps, 20)  # Cap at 20 steps for CPU
+        width = min(width, 512)   # Cap at 512px
+        height = min(height, 512) # Cap at 512px
 
     # Handle seed
     generator = None
@@ -147,7 +172,7 @@ def generate_image(
         print(f"Using seed: {seed}")
 
     try:
-        # Call the pipeline with memory-efficient parameters
+        # Generate with your fine-tuned model
         result = pipe(
             prompt,
             num_inference_steps=num_inference_steps, 
@@ -157,7 +182,7 @@ def generate_image(
             generator=generator
         )
         image = result.images[0]
-        print("Image generation successful.")
+        print("Naruto-style image generation successful.")
         return image
         
     except Exception as e:
