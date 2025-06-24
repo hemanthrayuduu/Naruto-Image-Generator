@@ -22,7 +22,7 @@ MODEL_DIR = os.environ.get("MODEL_DIR", "./model")
 
 # Use your fine-tuned LoRA model
 BASE_MODEL = "CompVis/stable-diffusion-v1-4"
-LORA_MODEL_PATH = MODEL_DIR
+LORA_MODEL_PATH = os.path.join(MODEL_DIR, 'backend', 'model')
 
 print(f"Using device: {DEVICE}, dtype: {TORCH_DTYPE}")
 print(f"Diffusers available: {DIFFUSERS_AVAILABLE}")
