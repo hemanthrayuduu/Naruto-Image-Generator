@@ -1,37 +1,21 @@
-# Netlify configuration for Naruto Image Generator HTML Frontend
+# Netlify configuration for redirecting to Streamlit Cloud
 [build]
   base = "frontend/"
   publish = "."
-  command = "echo 'Static HTML deployment - no build needed'"
+  command = "echo 'Redirecting to Streamlit Cloud'"
 
 [build.environment]
   BACKEND_API_URL = "https://naruto-image-generator.onrender.com"
 
-# Static file serving
-[[headers]]
-  for = "/*"
-  [headers.values]
-    X-Frame-Options = "DENY"
-    X-XSS-Protection = "1; mode=block"
-    X-Content-Type-Options = "nosniff"
-    Referrer-Policy = "strict-origin-when-cross-origin"
-
-# CORS headers for API calls
-[[headers]]
-  for = "/index.html"
-  [headers.values]
-    Cache-Control = "public, max-age=3600"
-
-# Enable CORS for API calls (if needed)
-[[redirects]]
-  from = "/api/*"
-  to = "https://naruto-image-generator.onrender.com/:splat"
-  status = 200
-  force = true
-  headers = {X-From = "Netlify"}
-
-# SPA fallback (optional, for client-side routing)
+# Redirect all traffic to Streamlit Cloud (update URL when you deploy)
 [[redirects]]
   from = "/*"
-  to = "/index.html"
-  status = 200 
+  to = "https://your-streamlit-app.streamlit.app/:splat"
+  status = 301
+  force = true
+
+# Alternative: Splash page with redirect
+# [[redirects]]
+#   from = "/*"
+#   to = "/redirect.html"
+#   status = 200 

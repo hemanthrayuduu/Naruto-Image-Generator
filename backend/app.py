@@ -66,22 +66,22 @@ async def generate(request: GenerationRequest):
             raise HTTPException(status_code=400, detail="Guidance scale must be between 1.0 and 20.0")
         
         # Generate image
-        image = generate_image(
-            prompt=request.prompt,
-            num_inference_steps=request.num_inference_steps,
-            guidance_scale=request.guidance_scale,
-            width=request.width,
-            height=request.height,
-            seed=request.seed
-        )
+    image = generate_image(
+        prompt=request.prompt,
+        num_inference_steps=request.num_inference_steps,
+        guidance_scale=request.guidance_scale,
+        width=request.width,
+        height=request.height,
+        seed=request.seed
+    )
         
         # Convert to response
-        buf = BytesIO()
-        image.save(buf, format='PNG')
-        buf.seek(0)
+    buf = BytesIO()
+    image.save(buf, format='PNG')
+    buf.seek(0)
         
         logger.info("Image generated successfully")
-        return StreamingResponse(buf, media_type="image/png")
+    return StreamingResponse(buf, media_type="image/png")
         
     except Exception as e:
         logger.error(f"Error generating image: {str(e)}")
