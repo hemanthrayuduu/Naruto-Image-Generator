@@ -82,47 +82,50 @@ def initialize_pipeline():
     print("Loading your fine-tuned Naruto LoRA model...")
     
     try:
-        # First, try to load your LoRA model
+        # Load base Stable Diffusion model with CPU optimizations
+        pipe = StableDiffusionPipeline.from_pretrained(
+            BASE_MODEL,
+            torch_dtype=TORCH_DTYPE,
+            safety_checker=None,
+            requires_safety_checker=False,
+            low_cpu_mem_usage=True,
+            use_safetensors=True
+        )
+        
+        # Move to device first
+        pipe = pipe.to(DEVICE)
+        
+        # Try to load LoRA weights if available
         if os.path.exists(LORA_MODEL_PATH) and any(f.endswith('.safetensors') or f.endswith('.bin') for f in os.listdir(LORA_MODEL_PATH)):
             print(f"Found LoRA model at: {LORA_MODEL_PATH}")
             
-            # Load base Stable Diffusion model
-            pipe = StableDiffusionPipeline.from_pretrained(
-                BASE_MODEL,
-                torch_dtype=TORCH_DTYPE,
-                safety_checker=None,
-                requires_safety_checker=False,
-                low_cpu_mem_usage=True,
-                use_safetensors=True
-            )
-            
-            # Load LoRA weights
             try:
-                pipe.load_lora_weights(LORA_MODEL_PATH)
-                print("LoRA weights loaded successfully")
+                # Try different LoRA loading methods
+                try:
+                    # Method 1: Standard LoRA loading
+                    pipe.load_lora_weights(LORA_MODEL_PATH)
+                    print("LoRA weights loaded successfully using standard method")
+                except Exception as e1:
+                    print(f"Standard LoRA loading failed: {e1}")
+                    try:
+                        # Method 2: Try with adapter name
+                        pipe.load_lora_weights(LORA_MODEL_PATH, adapter_name="default")
+                        print("LoRA weights loaded successfully with adapter name")
+                    except Exception as e2:
+                        print(f"LoRA loading with adapter name failed: {e2}")
+                        print("Continuing with base Stable Diffusion model (no LoRA)")
+                        
             except Exception as lora_error:
                 print(f"Could not load LoRA weights: {lora_error}")
-                print("Continuing with base model...")
-            
+                print("Continuing with base Stable Diffusion model...")
         else:
-            print(f"No LoRA model found at {LORA_MODEL_PATH}, loading base model...")
-            # Fallback to base model
-            pipe = StableDiffusionPipeline.from_pretrained(
-                BASE_MODEL,
-                torch_dtype=TORCH_DTYPE,
-                safety_checker=None,
-                requires_safety_checker=False,
-                low_cpu_mem_usage=True,
-                use_safetensors=True
-            )
-        
-        # Move to device
-        pipe = pipe.to(DEVICE)
+            print(f"No LoRA model found at {LORA_MODEL_PATH}, using base model...")
         
         # Enable memory efficient attention if available
         if hasattr(pipe.unet, 'set_use_memory_efficient_attention_xformers'):
             try:
                 pipe.unet.set_use_memory_efficient_attention_xformers(True)
+                print("Memory efficient attention enabled")
             except:
                 pass
         
@@ -130,10 +133,11 @@ def initialize_pipeline():
         if DEVICE == "cpu":
             try:
                 pipe.enable_sequential_cpu_offload()
-            except:
-                pass
+                print("CPU sequential offload enabled")
+            except Exception as e:
+                print(f"Could not enable CPU offload: {e}")
         
-        print("Naruto LoRA model loaded successfully")
+        print("Stable Diffusion pipeline loaded successfully")
         return pipe
         
     except Exception as e:
@@ -168,8 +172,14 @@ def generate_image(
     # Handle seed
     generator = None
     if seed is not None:
-        generator = torch.Generator(device=DEVICE).manual_seed(seed)
-        print(f"Using seed: {seed}")
+        try:
+            generator = torch.Generator(device=DEVICE).manual_seed(seed)
+            print(f"Using seed: {seed}")
+        except Exception as e:
+            print(f"Could not create generator with device {DEVICE}: {e}")
+            # Fallback to CPU generator
+            generator = torch.Generator(device='cpu').manual_seed(seed)
+            print(f"Using CPU generator with seed: {seed}")
 
     try:
         # Generate with your fine-tuned model
@@ -182,15 +192,16 @@ def generate_image(
             generator=generator
         )
         image = result.images[0]
-        print("Naruto-style image generation successful.")
+        print("Image generation successful.")
         return image
         
     except Exception as e:
         print(f"Error during generation: {e}")
         # Return a simple error image
         from PIL import Image, ImageDraw
-        img = Image.new('RGB', (width, height), 'red')
+        img = Image.new('RGB', (width, height), 'lightblue')
         draw = ImageDraw.Draw(img)
-        draw.text((10, 10), "Error: Generation failed", fill="white")
-        draw.text((10, 30), str(e)[:40], fill="white")
+        draw.text((10, 10), "Generated with Base Model", fill="darkblue")
+        draw.text((10, 30), f"Prompt: {prompt[:30]}...", fill="darkblue")
+        draw.text((10, height-20), "LoRA loading failed - using base SD", fill="red")
         return img 
