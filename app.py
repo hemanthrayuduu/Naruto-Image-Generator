@@ -247,54 +247,14 @@ def create_interface():
 # Create and launch the interface
 if __name__ == "__main__":
     import os
-    import sys
     
-    # HF Spaces environment detection
-    is_hf_spaces = "SPACE_ID" in os.environ
-    
-    # Disable analytics and API doc generation which may cause schema parsing issues
+    # Disable analytics
     os.environ["GRADIO_ANALYTICS_ENABLED"] = "False"
     
-    # For HF Spaces, disable API documentation to avoid schema parsing errors
-    if is_hf_spaces:
-        os.environ["GRADIO_SHOW_API"] = "False"
-    
     demo = create_interface()
-    
-    try:
-        launch_kwargs = {
-            "server_name": "0.0.0.0",
-            "server_port": 7860,
-            "show_error": True,
-            "enable_queue": True,
-            "show_api": False  # Disable API documentation to avoid schema parsing error
-        }
-        
-        # For HF Spaces, don't set share (they handle it)
-        if not is_hf_spaces:
-            launch_kwargs["share"] = False
-        
-        demo.launch(**launch_kwargs)
-        
-    except (ValueError, TypeError) as e:
-        error_msg = str(e)
-        if "localhost is not accessible" in error_msg or "argument of type 'bool' is not iterable" in error_msg:
-            print(f"⚠️ Deployment error detected: {type(e).__name__}")
-            print(f"Error message: {error_msg[:100]}...")
-            print("Retrying with alternative launch configuration...")
-            
-            # Retry with minimal configuration
-            try:
-                demo = create_interface()
-                demo.launch(
-                    server_name="0.0.0.0" if is_hf_spaces else "127.0.0.1",
-                    share=not is_hf_spaces,
-                    show_api=False,
-                    enable_queue=True
-                )
-            except Exception as retry_error:
-                print(f"❌ Retry failed: {retry_error}")
-                sys.exit(1)
-        else:
-            print(f"Unexpected error: {e}")
-            raise
+    demo.launch(
+        share=False,
+        server_name="0.0.0.0",
+        server_port=7860,
+        show_error=True
+    )
