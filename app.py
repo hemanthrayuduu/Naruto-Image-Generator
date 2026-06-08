@@ -6,6 +6,27 @@ import os
 from PIL import Image
 import random
 
+# Patch for Gradio schema parsing bug
+def patch_gradio_schema():
+    """Fix the 'argument of type bool is not iterable' error in Gradio"""
+    try:
+        from gradio_client import utils
+        original_get_type = utils.get_type
+        
+        def patched_get_type(schema):
+            # Handle boolean schemas (JSON Schema draft compatibility)
+            if isinstance(schema, bool):
+                return "any"
+            return original_get_type(schema)
+        
+        utils.get_type = patched_get_type
+        print("✅ Gradio schema parsing patch applied")
+    except Exception as e:
+        print(f"⚠️ Could not apply Gradio patch: {e}")
+
+# Apply patch before loading pipeline
+patch_gradio_schema()
+
 # Model configuration
 BASE_MODEL = "CompVis/stable-diffusion-v1-4"
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
